@@ -1,10 +1,12 @@
 import { Component, ViewChild } from '@angular/core';
-import { Nav, Platform } from 'ionic-angular';
+import { Platform, Nav, AlertController } from 'ionic-angular';
 import { StatusBar } from '@ionic-native/status-bar';
 import { SplashScreen } from '@ionic-native/splash-screen';
-
-import { HomePage } from '../pages/home/home';
-import { ListPage } from '../pages/list/list';
+import { Home } from '../pages/home/home';
+import { Service } from '../providers/service/service';
+import { Values } from '../providers/service/values';
+import { TranslateService } from '@ngx-translate/core';
+import { OneSignal } from '@ionic-native/onesignal';
 
 @Component({
   templateUrl: 'app.html'
@@ -12,33 +14,93 @@ import { ListPage } from '../pages/list/list';
 export class MyApp {
   @ViewChild(Nav) nav: Nav;
 
-  rootPage: any = HomePage;
+  rootPage: any = Home;
+  status: any;
+  pages: Array<{title: string, component: any}>
+  menu: Array<{title: string, component: any}>
+  configuration: any;
+  items: any;
+  buttonLanguagesSettings: boolean= false;
 
-  pages: Array<{title: string, component: any}>;
+  constructor(statusBar: StatusBar, splashScreen: SplashScreen, public alertCtrl: AlertController, private oneSignal: OneSignal, public platform: Platform, public service: Service, public values: Values, public translateService: TranslateService) {
+    platform.ready().then(() => {
+      statusBar.styleDefault();
+      splashScreen.hide();
 
-  constructor(public platform: Platform, public statusBar: StatusBar, public splashScreen: SplashScreen) {
-    this.initializeApp();
+      this.service.load()
+       .then((results) => this.configuration = results);
 
-    // used for an example of ngFor and navigation
-    this.pages = [
-      { title: 'Home', component: HomePage },
-      { title: 'List', component: ListPage }
-    ];
+      if(platform.is('cordova')){
+          this.oneSignal.startInit('One-Signal-App-ID', 'FCM-OR-GCM-Sender-ID');
 
-  }
+          this.oneSignal.inFocusDisplaying(this.oneSignal.OSInFocusDisplayOption.InAppAlert);
 
-  initializeApp() {
-    this.platform.ready().then(() => {
-      // Okay, so the platform is ready and our plugins are available.
-      // Here you can do any higher level native things you might need.
-      this.statusBar.styleDefault();
-      this.splashScreen.hide();
+          this.oneSignal.handleNotificationReceived().subscribe(() => {
+           // do something when notification is received
+          });
+
+          this.oneSignal.handleNotificationOpened().subscribe(() => {
+            // do something when a notification is opened
+          });
+          this.oneSignal.endInit();
+      } 
+
     });
+
+    this.translateService.setDefaultLang('russian');
+    //this.platform.setDir('rtl', true);
+    //this.values.dir = 'right';
+
   }
 
-  openPage(page) {
-    // Reset the content nav to have just this page
-    // we wouldn't want the back button to show in this scenario
-    this.nav.setRoot(page.component);
-  }
+    openPage(page) {
+        this.nav.setRoot(page);
+    }
+    getCategory(id, slug) {
+        this.items = [];
+        this.items.id = id;
+        this.items.slug = slug;
+        this.items.categories = this.service.categories;
+        this.nav.setRoot('ProductsPage', this.items);
+    }
+    getCart() {
+        this.nav.setRoot('CartPage');
+    }
+    logout() {
+        this.service.logout();
+        this.values.wishlistId = [];
+    }
+
+    login(){
+      this.nav.setRoot('AccountLogin');
+    }
+
+    register(){
+      this.nav.setRoot('AccountRegister');
+    }
+
+    address(){
+      this.nav.setRoot('Address');
+    }
+
+
+     order(){
+      this.nav.setRoot('Orders');
+    }
+
+
+     cart(){
+      this.nav.setRoot('CartPage');
+    }
+
+  
+    wishlist(){
+      this.nav.setRoot('WishlistPage');
+    }
+    
+
+    shop(){
+      this.nav.setRoot(Home);
+    }
+
 }
